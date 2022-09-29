@@ -7,6 +7,7 @@ import ecu.project.product.domain.dto.MovementRequest;
 import ecu.project.product.domain.dto.MovementResponse;
 import ecu.project.product.domain.service.AccountService;
 import ecu.project.product.domain.service.MovementService;
+import ecu.project.product.infraestructure.exception.APIException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -42,18 +43,29 @@ public class MovementController {
     public ResponseEntity<List<MovementDTO>> getByIdAccount(@PathVariable long idAccount) {
         return new ResponseEntity<>(movementService.getByIdAccount(idAccount), HttpStatus.OK);
     }
-    @GetMapping("/account/{idAccount}/dateini/{dateIni}/date/{dateFin}")
-    public ResponseEntity<List<MovementDTO>> getByIdAccount(@PathVariable String dateIni,
+    @GetMapping("/account/{idAccount}/{dateIni}/{dateFin}")
+    public ResponseEntity<List<MovementDTO>> getResportByAccountDate(@PathVariable String dateIni,
                                                             @PathVariable String dateFin,
                                                             @PathVariable long idAccount) throws ParseException {
 
-        return new ResponseEntity<>(
-                movementService.getByDateBetweenAndIdAccount(
-                        new SimpleDateFormat("yyyy-MM-dd").parse("2020-01-01"),
-                        new SimpleDateFormat("yyyy-MM-dd").parse("2020-01-01") ,
-                        idAccount),
-                HttpStatus.OK);
 
+        try {
+            DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm");
+
+            return movementService.getByDateBetweenAndIdAccount(
+                            LocalDateTime.parse(dateIni + " 00:00", formatter),
+                            LocalDateTime.parse(dateFin + " 23:59", formatter),
+                            idAccount)
+                    .map(x -> new ResponseEntity(x, HttpStatus.OK))
+
+                    .orElseThrow(() -> new APIException("No se encontro resultado para los filtros ingresados"));
+
+
+        }
+        catch  (Exception err){
+            log.error("getResportByAccountDate",err);
+            return new ResponseEntity(new APIException("Error Interno"), HttpStatus.INTERNAL_SERVER_ERROR);
+        }
 
     }
 
@@ -69,46 +81,31 @@ public class MovementController {
     @PostMapping
     public ResponseEntity<MovementResponse> create(@RequestBody MovementRequest request) {
 
-
         try {
-
-
             MovementResponse response = MovementResponse.builder().build();
-
-
             Optional<AccountDTO> accountDTO = accountService.getById(request.getIdAccount());
 
             if (accountDTO.isPresent()) {
-
                 AccountDTO acountActual = accountDTO.get();
-
                 if (request.getTypeMovement().equals("RTRO")) {
-
                     if (acountActual.getBalanceAvailable() > 0) {
-
-
                         if (acountActual.getBalanceAvailable() >= request.getValue()) {
                             double saldo = acountActual.getBalanceAvailable() - request.getValue();
-
                             MovementDTO movementDTO = MovementDTO.builder().build();
                             movementDTO.setTypeMovement(request.getTypeMovement());
                             movementDTO.setIdAccount(acountActual.getIdAccount());
                             movementDTO.setBalance(saldo);
                             movementDTO.setValue(-request.getValue());
                             movementDTO.setDate(LocalDateTime.now());
-
                             this.movementService.save(movementDTO);
-
                             acountActual.setBalanceAvailable(saldo);
                             this.accountService.save(acountActual);
-
                             response.setMessage("Transacción Autorizado ");
 
                         } else {
                             response.setCodMessage(-1);
                             response.setMessage("No dispone de saldo suficiente ");
                         }
-
                     } else {
                         response.setCodMessage(-2);
                         response.setMessage("No tiene saldo ");
@@ -116,39 +113,27 @@ public class MovementController {
                     }
 
                 } else if (request.getTypeMovement().equals("DPTO")) {
-
                     double saldo = acountActual.getBalanceAvailable() + request.getValue();
-
                     MovementDTO movementDTO = MovementDTO.builder().build();
                     movementDTO.setTypeMovement(request.getTypeMovement());
                     movementDTO.setIdAccount(acountActual.getIdAccount());
                     movementDTO.setBalance(saldo);
                     movementDTO.setValue(request.getValue());
                     movementDTO.setDate(LocalDateTime.now());
-
                     this.movementService.save(movementDTO);
-
                     acountActual.setBalanceAvailable(saldo);
                     this.accountService.save(acountActual);
-
                     response.setMessage("Transacción Autorizado ");
-
                 }
-
-
             } else {
-
                 response.setCodMessage(-3);
                 response.setMessage("No existe una cuenta ");
             }
-
             return new ResponseEntity<>(response, HttpStatus.OK);
         } catch (Exception err) {
             log.error("Error movimiento", err);
-            return new ResponseEntity<>(HttpStatus.EXPECTATION_FAILED);
-
+            return new ResponseEntity(new APIException("Error Interno"),HttpStatus.EXPECTATION_FAILED);
         }
-
     }
 
 

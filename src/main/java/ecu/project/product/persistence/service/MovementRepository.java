@@ -9,6 +9,7 @@ import ecu.project.product.persistence.model.entity.MovementEntity;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Repository;
 
+import java.time.LocalDateTime;
 import java.util.Date;
 import java.util.List;
 import java.util.Optional;
@@ -21,7 +22,6 @@ public class MovementRepository implements IMovementRepository {
 
     @Autowired
     private IMovementMapper iMovementMapper;
-
 
     @Override
     public List<MovementDTO> getAll() {
@@ -37,7 +37,7 @@ public class MovementRepository implements IMovementRepository {
 
 
     @Override
-    public List<MovementDTO> getByDateBetweenAndIdAccount(Date dateStart, Date dateEnd, long idAccount){
+    public List<MovementDTO> getByDateBetweenAndIdAccount(LocalDateTime dateStart, LocalDateTime dateEnd, long idAccount){
         return  iMovementMapper.toMovements((List<MovementEntity>) iMovementCrudRepository.findByDateBetweenAndIdAccount(dateStart,dateEnd,  idAccount));
 
     }

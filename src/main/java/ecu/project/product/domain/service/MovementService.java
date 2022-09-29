@@ -7,6 +7,7 @@ import ecu.project.product.domain.repository.IMovementRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDateTime;
 import java.util.Date;
 import java.util.List;
 import java.util.Optional;
@@ -24,8 +25,14 @@ public class MovementService {
         return iMovementRepository.getByIdAccount(idAccount);
     }
 
-    public List<MovementDTO> getByDateBetweenAndIdAccount(Date dateStart, Date dateEnd, Long idAccount) {
-        return iMovementRepository.getByDateBetweenAndIdAccount(dateStart,dateEnd,idAccount);
+    public Optional<List<MovementDTO>> getByDateBetweenAndIdAccount(LocalDateTime dateStart, LocalDateTime dateEnd, Long idAccount) {
+        List<MovementDTO> result= iMovementRepository.getByDateBetweenAndIdAccount(dateStart,dateEnd,idAccount);
+        if(result.size()>0){
+            return Optional.ofNullable(result );
+        }else{
+            return Optional.empty();
+        }
+
     }
 
 

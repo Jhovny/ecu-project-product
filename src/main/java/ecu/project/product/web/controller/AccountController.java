@@ -41,7 +41,7 @@ public class AccountController {
     @PostMapping
     public ResponseEntity<AccountDTO> create(@RequestBody AccountDTO accountDTO){
         accountDTO.setBalanceAvailable(accountDTO.getBalanceInitial());
-        return  new ResponseEntity<>(this.accountService.save(accountDTO), HttpStatus.OK) ;
+        return  new ResponseEntity<>(this.accountService.save(accountDTO), HttpStatus.CREATED) ;
     }
 
 
